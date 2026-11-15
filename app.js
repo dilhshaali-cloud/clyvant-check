@@ -26,6 +26,9 @@
   var INTEGER = { orders: true, items: true, samples: true };
   var state = { market: 'EU', mode: 'payouts', costMode: 'item', example: false, roi: null, dates: null, src: {} };
   var $ = function (id) { return document.getElementById(id); };
+  // Null-safe for pages cached before these elements existed.
+  function setText(id, t) { var el = $(id); if (el) el.textContent = t; }
+  function setHidden(id, h) { var el = $(id); if (el) el.hidden = h; }
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- numbers ---------- */
@@ -175,7 +178,7 @@
     var box = $('paste-' + kind), status = $('status-' + kind), R = READERS[kind];
     var text = box.value;
     if (!text.trim()) return;
-    $('boardMsg').textContent = '';
+    setText('boardMsg', '');
     leaveExample(kind);
     var m = detectMarket(text), switched = false;
     if (m && m !== state.market) { applyMarket(m, true); switched = true; }
@@ -229,8 +232,8 @@
     $('smartWrap').hidden = !M.smart;
     if (!M.smart) $('smart').checked = false;
     $('eaMarket').value = M.form;
-    $('euNote').hidden = m !== 'EU';
-    $('shopsHint').hidden = m === 'EU';
+    setHidden('euNote', m !== 'EU');
+    setHidden('shopsHint', m === 'EU');
     document.querySelectorAll('[data-cur]').forEach(function (el) { el.textContent = M.cur; });
   }
   function applyMode(mode) {
@@ -483,7 +486,8 @@
   function signed(n, mk) { return (n >= 0 ? '+' : '−') + money(Math.abs(n), mk); }
   function renderShops() {
     var box = $('shops');
-    if (!shops.length) { box.hidden = true; $('shopsNote').textContent = ''; return; }
+    if (!box) return;
+    if (!shops.length) { box.hidden = true; setText('shopsNote', ''); return; }
     box.hidden = false;
     var T = totals();
     var head = '<thead><tr><th scope="col">Shop</th><th scope="col">TikTok ROI</th><th scope="col">Real ROI</th><th scope="col">Break-even</th><th scope="col">Ad cost</th><th scope="col">Brought back</th><th scope="col">Made or lost</th><th scope="col">Checks</th><th scope="col"><span class="visually-hidden">Remove</span></th></tr></thead>';
@@ -526,7 +530,7 @@
     ['cost', 'gross', 'costAff', 'gmv', 'orders', 'items', 'creators', 'payout', 'prodTotal', 'samples'].forEach(function (id) { $(id).value = ''; $(id).classList.remove('is-filled'); });
     ['ads', 'analytics', 'payouts'].forEach(function (k) { $('paste-' + k).value = ''; $('status-' + k).textContent = ''; $('status-' + k).removeAttribute('data-state'); });
     state.roi = null; state.dates = null; state.src = {};
-    $('boardMsg').textContent = name + ' is in your shops (' + shops.length + ' so far). Paste the next shop’s three pages' + (M.countries ? ' after switching the country in Seller Centre.' : '.');
+    setText('boardMsg', name + ' is in your shops (' + shops.length + ' so far). Paste the next shop’s three pages' + (M.countries ? ' after switching the country in Seller Centre.' : '.'));
     render();
     var b = document.querySelector('.board');
     if (b && b.scrollIntoView) b.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
@@ -573,7 +577,7 @@
   }
   function fillExample() {
     clearAll();
-    $('boardMsg').textContent = '';
+    setText('boardMsg', '');
     ['ads', 'analytics', 'payouts'].forEach(function (k) { $('paste-' + k).value = ''; });
     state.example = true;
     $('country').value = EXAMPLE.country;
@@ -691,7 +695,7 @@
   } else {
     shown.ran = true;
   }
-  $('suggestDates').textContent = suggested().text;
+  setText('suggestDates', suggested().text);
   loadShops();
   renderShops();
   window.addEventListener('hashchange', fromHash);

@@ -8,11 +8,12 @@
   var MARKETS = {
     US: { name: 'United States', form: 'United States', cur: 'USD', locale: 'en-US', dec: 2, fee: 6, perOrder: 0, vat: 0, smart: true, vatLabel: 'Sales tax in your prices %', feeNote: 'Referral fee. TikTok’s table says 6%; some sellers see 8% since 4 Aug 2026.' },
     UK: { name: 'United Kingdom', form: 'United Kingdom', cur: 'GBP', locale: 'en-GB', dec: 2, fee: 9, perOrder: 0, vat: 20, vatLabel: 'VAT in your prices %', feeNote: 'Commission, most categories, since 2 Sep 2024.' },
-    EU: { name: 'Europe', form: 'Europe', cur: 'EUR', locale: 'en-IE', dec: 2, fee: 9, perOrder: 0, vat: 20, vatLabel: 'VAT in your prices %', feeNote: 'Commission, most categories, since 8 Jan 2026.', countries: { FR: 20, DE: 19, IT: 22, ES: 21, IE: 23 } },
+    EU: { name: 'Europe', form: 'Europe', cur: 'EUR', locale: 'en-IE', dec: 2, fee: 9, perOrder: 0, vat: 20, vatLabel: 'VAT in your prices %', feeNote: 'Commission, most categories, since 8 Jan 2026.', countries: { FR: 20, DE: 19, IT: 22, ES: 21, IE: 23, OT: 20 } },
     MY: { name: 'Malaysia', form: 'Malaysia', cur: 'MYR', locale: 'en-MY', dec: 2, fee: 13.8, perOrder: 0.54, vat: 0, vatLabel: 'Tax in your prices %', feeNote: 'Commission by category plus the 3.78% transaction fee. RM0.54 per order.' },
     ID: { name: 'Indonesia', form: 'Indonesia', cur: 'IDR', locale: 'id-ID', dec: 0, fee: 16, perOrder: 1250, vat: 0, vatLabel: 'PPN in your prices %', feeNote: 'Platform plus dynamic commission. Rp1,250 per order.' }
   };
-  var COUNTRY_NAME = { FR: 'France', DE: 'Germany', IT: 'Italy', ES: 'Spain', IE: 'Ireland' };
+  var COUNTRY_NAME = { FR: 'France', DE: 'Germany', IT: 'Italy', ES: 'Spain', IE: 'Ireland', OT: 'Other EU country' };
+  var PAGE_PLACE = { 'france': ['EU', 'FR'], 'germany': ['EU', 'DE'], 'italy': ['EU', 'IT'], 'spain': ['EU', 'ES'], 'ireland': ['EU', 'IE'], 'united kingdom': ['UK'], 'united states': ['US'], 'malaysia': ['MY'], 'indonesia': ['ID'] };
 
   /* Our shop in France. Orders placed 15 May to 14 Oct 2026, every one paid out.
      Payout and product cost come from Finance, Statements, View by orders. */
@@ -106,6 +107,11 @@
     var s = d.getUTCDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
     return withYear ? s + ' ' + d.getUTCFullYear() : s;
   }
+  // A window that TikTok has paid out: three months ending 31 days ago.
+  function suggested() {
+    var end = todayUTC() - 31 * DAY, start = end - 91 * DAY;
+    return { start: start, end: end, text: fmtDate(start) + ' to ' + fmtDate(end) };
+  }
   function isoDay(s) { var p = s.split('-'); return utc(+p[0], +p[1] - 1, +p[2]); }
 
   /* ---------- reading pasted Seller Centre pages ---------- */
@@ -132,9 +138,16 @@
     if (/\$|\bUSD\b/.test(text)) return 'US';
     return null;
   }
+  function readPlace(L) {
+    for (var i = 0; i < L.length - 1; i++) {
+      var a = L[i].toLowerCase();
+      if (a === 'seller centre' || a === 'seller center') { var p = PAGE_PLACE[L[i + 1].toLowerCase()]; if (p) return p; }
+    }
+    return null;
+  }
   function readAds(text) {
     var L = linesOf(text);
-    return { cost: after(L, 'Cost'), gross: after(L, 'Gross revenue'), costAff: after(L, 'Cost (affiliate)'), roi: after(L, 'ROI') };
+    return { cost: after(L, 'Cost'), gross: after(L, 'Gross revenue'), costAff: after(L, 'Cost (affiliate)'), roi: after(L, 'ROI'), place: readPlace(L) };
   }
   function readAnalytics(text) {
     var L = linesOf(text), sum = 0, found = 0;
@@ -162,10 +175,20 @@
     var box = $('paste-' + kind), status = $('status-' + kind), R = READERS[kind];
     var text = box.value;
     if (!text.trim()) return;
+    $('boardMsg').textContent = '';
     leaveExample(kind);
     var m = detectMarket(text), switched = false;
     if (m && m !== state.market) { applyMarket(m, true); switched = true; }
-    var got = R.read(text), read = [], missing = [];
+    var got = R.read(text), read = [], missing = [], placeNote = '';
+    if (got.place) {
+      var pm = got.place[0], pc = got.place[1];
+      if (pm !== state.market) { applyMarket(pm, true); switched = true; }
+      if (pc && MARKETS[pm].countries && $('country').value !== pc) {
+        $('country').value = pc;
+        $('vat').value = String(MARKETS[pm].countries[pc]);
+        placeNote = ' Country set to ' + COUNTRY_NAME[pc] + ', VAT ' + $('vat').value + '%.';
+      }
+    }
     Object.keys(R.fields).forEach(function (k) {
       var input = $(k);
       if (got[k] !== null && got[k] !== undefined) {
@@ -186,7 +209,7 @@
     } else {
       status.setAttribute('data-state', missing.length ? 'bad' : 'ok');
       if (!missing.length) box.value = '';
-      status.textContent = 'Read ' + list(read) + '.' + (missing.length ? ' Type ' + list(missing) + ' in step 2.' : '') + (switched ? ' Market set to ' + MARKETS[state.market].name + '.' : '');
+      status.textContent = 'Read ' + list(read) + '.' + (missing.length ? ' Type ' + list(missing) + ' in step 2.' : '') + (switched ? ' Market set to ' + MARKETS[state.market].name + '.' : '') + placeNote;
     }
     render();
   }
@@ -206,6 +229,8 @@
     $('smartWrap').hidden = !M.smart;
     if (!M.smart) $('smart').checked = false;
     $('eaMarket').value = M.form;
+    $('euNote').hidden = m !== 'EU';
+    $('shopsHint').hidden = m === 'EU';
     document.querySelectorAll('[data-cur]').forEach(function (el) { el.textContent = M.cur; });
   }
   function applyMode(mode) {
@@ -309,25 +334,26 @@
     // 2. Ad sales inside shop sales
     if (T > 0 && G >= 0) {
       if (G <= T * 1.005) res.push(['ck-credit', 'ok', pct(G / T) + ' of shop sales were counted as ad sales.']);
-      else res.push(['ck-credit', 'warn', 'Ad sales are more than shop sales. Use the same dates on both pages.']);
+      else res.push(['ck-credit', 'warn', 'Ad sales are more than shop sales. Use the same dates and country on both pages, over a few months: on a few days the two don’t line up.']);
     } else res.push(['ck-credit', 'todo', 'Needs both pages']);
     // 3. Payout against sales
-    if (state.mode === 'estimate') res.push(['ck-payout', 'warn', 'No payouts page, so TikTok’s cut is estimated from fee presets. Less exact.']);
+    if (state.mode === 'estimate') res.push(['ck-payout', 'na', 'Estimate: TikTok’s cut comes from fee presets, not your payouts.', false]);
     else if (T > 0 && isFinite(P)) {
       var share = P / T;
-      if (share > 1.005) res.push(['ck-payout', 'warn', 'Payout is more than shop sales. Use the same dates on all three pages.']);
+      if (share > 1.005) res.push(['ck-payout', 'warn', 'Payout is more than shop sales. Use the same dates and the same country on all three pages, not “All markets”.']);
+      else if (share > 0.85) res.push(['ck-payout', 'warn', 'Payout is ' + pct(share) + ' of shop sales, more than TikTok usually pays. Check the Finance page shows this country, not “All markets”, and the same dates.']);
       else if (share < 0.2) res.push(['ck-payout', 'warn', 'Payout is only ' + pct(share) + ' of shop sales. Check the Finance dates.']);
       else res.push(['ck-payout', 'ok', 'TikTok paid out ' + pct(share) + ' of shop sales.']);
     } else res.push(['ck-payout', 'todo', 'Needs the Finance page']);
     // 4. Dates
     if (state.example) res.push(['ck-dates', 'ok', 'Orders placed 15 May to 14 Oct 2026, read order by order.']);
-    else if (state.mode === 'estimate') res.push(['ck-dates', 'na', 'Not checked without the Finance page. Use dates that ended 30+ days ago.']);
+    else if (state.mode === 'estimate') res.push(['ck-dates', 'na', 'Estimate: any dates work, today included.', false]);
     else if (state.dates) {
       var ago = Math.round((todayUTC() - state.dates.end) / DAY), len = Math.round((state.dates.end - state.dates.start) / DAY) + 1;
-      if (ago < 30) res.push(['ck-dates', 'warn', 'Your dates end ' + fmtDate(state.dates.end) + '. Payouts and refunds from the last 30 days aren’t final. Pick dates that ended by ' + fmtDate(todayUTC() - 30 * DAY) + '.']);
+      if (ago < 30) res.push(['ck-dates', 'warn', 'Your dates end ' + fmtDate(state.dates.end) + '. TikTok hasn’t paid out the recent orders yet, so the Finance page can’t include them. Use ' + suggested().text + ', or switch to “Recent (estimate)”.']);
       else if (len < 28) res.push(['ck-dates', 'warn', 'Only ' + len + ' days. Use 2 to 6 months so the payout timing evens out.']);
       else res.push(['ck-dates', 'ok', fmtDate(state.dates.start) + ' to ' + fmtDate(state.dates.end, true) + ', ended ' + ago + ' days ago.']);
-    } else if (isFinite(P)) res.push(['ck-dates', 'na', 'Couldn’t see your dates. Make sure they ended 30+ days ago.']);
+    } else if (isFinite(P)) res.push(['ck-dates', 'na', 'Couldn’t see your dates. Make sure they ended 30+ days ago: ' + suggested().text + '.']);
     else res.push(['ck-dates', 'todo', 'Read from the Finance page']);
     // 5. Costs
     var costOK = has('vat') && (state.costMode === 'item' ? has('unitCost') : has('prodTotal'));
@@ -348,10 +374,11 @@
     $('boardCap').textContent = state.example ? 'Our shop in France, orders from 15 May to 14 Oct 2026' : 'Your shop, ' + where;
     $('exampleNote').hidden = !state.example;
     $('payoutSrc').textContent = state.example ? 'Finance, Statements, by order' : 'Finance, Payout amount';
-    var passed = checks.filter(function (c) { return c[1] === 'ok'; }).length;
+    var counted = checks.filter(function (c) { return c[3] !== false; });
+    var passed = counted.filter(function (c) { return c[1] === 'ok'; }).length;
     var pill = $('checkPill');
     if (r.missing) { pill.setAttribute('data-state', 'todo'); $('checkPillText').textContent = 'Waiting for your numbers'; }
-    else { pill.setAttribute('data-state', passed === checks.length ? 'ok' : 'warn'); $('checkPillText').textContent = passed + ' of ' + checks.length + ' checks passed'; }
+    else { pill.setAttribute('data-state', passed === counted.length ? 'ok' : 'warn'); $('checkPillText').textContent = passed + ' of ' + counted.length + ' checks passed' + (state.mode === 'estimate' ? ' · estimate' : ''); }
 
     if (r.missing) {
       box.innerHTML = '<div class="result__empty"><p class="result__cap">' + esc(state.example ? 'Our shop' : 'Your shop') + '</p><p>Still needed: ' + esc(list(r.missing)) + '.</p><p><button type="button" class="textbtn" data-example>See our shop’s numbers</button></p></div>';
@@ -361,7 +388,7 @@
       return;
     }
     var made = r.net >= 0;
-    var cap = state.example ? 'Our shop in France · 15 May to 14 Oct 2026' : 'Your shop · ' + where;
+    var cap = state.example ? 'Our shop in France · 15 May to 14 Oct 2026' : 'Your shop · ' + where + (state.mode === 'estimate' ? ' · estimate' : '');
     var vline;
     if (r.verdict === 'Cut') vline = isFinite(r.be) ? 'Ads lose money. You break even at ROI ' + r2(r.be) + ' and TikTok shows ' + r2(r.tiktokROI) + '. Raise your ROI target to at least ' + r2(r.be) + ', or cut the budget.' : 'Each sale loses money before ads, so no ROI target fixes this. Fix price or costs first.';
     else if (r.verdict === 'Keep') vline = 'Ads pay for themselves, barely. Each ' + unit() + ' of ads brings back ' + perUnit(r.realROI) + '. Hold the budget until it brings back ' + perUnit(1.3) + '.';
@@ -394,7 +421,7 @@
       '</dl>' + bar +
       '<div class="verdict verdict--' + r.verdict.toLowerCase() + '"><span class="verdict__word"><i class="verdict__dot" aria-hidden="true"></i>' + r.verdict + '</span><p>' + esc(vline) + '</p></div>' +
       '<dl class="result__facts">' + facts + '</dl>' +
-      '<div class="result__actions"><button type="button" class="btn btn--lime" data-copy>Copy my result</button><a class="btn btn--line" data-copy data-send href="https://www.linkedin.com/in/dilshad-ali-ceo/" rel="noopener" target="_blank">Send it to Dilshad</a></div>' +
+      '<div class="result__actions"><button type="button" class="btn btn--lime" data-copy>Copy my result</button><a class="btn btn--line" data-copy data-send href="https://www.linkedin.com/in/dilshad-ali-ceo/" rel="noopener" target="_blank">Send it to Dilshad</a>' + (state.example ? '' : '<button type="button" class="btn btn--line btn--full" data-add-shop>Add to my shops</button>') + '</div>' +
       '<p class="result__note" aria-live="polite" id="copyNote"></p>';
     if (!shown.complete && shown.ran) countDown(r);
     shown.complete = true;
@@ -418,10 +445,96 @@
     setTimeout(function () { requestAnimationFrame(step); }, 700);
   }
   function resultLine(r) {
-    return 'GMV Max check (' + MARKETS[state.market].name + '): TikTok shows ROI ' + r2(r.tiktokROI) + '. After TikTok’s cut, VAT, product cost' + (r.samples > 0 ? ' and free samples' : '') + ', the real ROI is ' + r2(r.realROI) + '. Break-even ROI: ' + (isFinite(r.be) ? r2(r.be) : 'none') + '. GMV Max was credited with ' + pct(r.credit) + ' of all sales. Check yours: ' + SITE;
+    return 'GMV Max check (' + MARKETS[state.market].name + (state.mode === 'estimate' ? ', estimate' : '') + '): TikTok shows ROI ' + r2(r.tiktokROI) + '. After TikTok’s cut, VAT, product cost' + (r.samples > 0 ? ' and free samples' : '') + ', the real ROI is ' + r2(r.realROI) + '. Break-even ROI: ' + (isFinite(r.be) ? r2(r.be) : 'none') + '. GMV Max was credited with ' + pct(r.credit) + ' of all sales. Check yours: ' + SITE;
   }
   function benchLine(r) {
     return [state.market, state.mode, 'credit=' + r.credit.toFixed(3), 'roi=' + r.tiktokROI.toFixed(2), 'real=' + r.realROI.toFixed(2), 'be=' + (isFinite(r.be) ? r.be.toFixed(2) : 'inf'), 'kept=' + r.m.toFixed(3), 'samples=' + (r.samples > 0 ? 'yes' : 'no'), 'creators=' + (r.creators !== null ? r.creators.toFixed(3) : 'na'), 'adsOnCreators=' + (r.adsOnCreators !== null ? r.adsOnCreators.toFixed(3) : 'na'), state.example ? 'example' : 'user'].join('; ');
+  }
+
+  /* ---------- several shops: a running total ---------- */
+  var SHOPS = 'gmvmax-shops-v1', shops = [];
+  function money(n, mk) {
+    var M = MARKETS[mk], d = (Math.abs(n) >= 1000 || M.dec === 0) ? 0 : M.dec;
+    try { return new Intl.NumberFormat(M.locale, { style: 'currency', currency: M.cur, minimumFractionDigits: d, maximumFractionDigits: d }).format(n); }
+    catch (e) { return M.cur + ' ' + n.toFixed(d); }
+  }
+  function loadShops() {
+    try {
+      var a = JSON.parse(localStorage.getItem(SHOPS) || '[]');
+      shops = Array.isArray(a) ? a.filter(function (x) { return x && MARKETS[x.market] && x.C > 0 && isFinite(x.G) && isFinite(x.back); }) : [];
+    } catch (e) { shops = []; }
+  }
+  function saveShops() { try { localStorage.setItem(SHOPS, JSON.stringify(shops)); } catch (e) { /* storage unavailable */ } }
+  // Real ROI = brought back ÷ ad cost; break-even = credited sales ÷ brought back (= 1 ÷ kept per 1 of sales).
+  function sums(o) {
+    var real = Math.max(0, o.back / o.C);
+    return { tt: o.G / o.C, real: real, be: o.back > 0 ? o.G / o.back : Infinity, net: o.back - o.C };
+  }
+  function totals() {
+    var t = {}, order = [];
+    shops.forEach(function (x) {
+      var k = MARKETS[x.market].cur;
+      if (!t[k]) { t[k] = { market: x.market, n: 0, C: 0, G: 0, back: 0, est: false }; order.push(k); }
+      t[k].n++; t[k].C += x.C; t[k].G += x.G; t[k].back += x.back;
+      if (x.mode === 'estimate') t[k].est = true;
+    });
+    return order.map(function (k) { return t[k]; });
+  }
+  function signed(n, mk) { return (n >= 0 ? '+' : '−') + money(Math.abs(n), mk); }
+  function renderShops() {
+    var box = $('shops');
+    if (!shops.length) { box.hidden = true; $('shopsNote').textContent = ''; return; }
+    box.hidden = false;
+    var T = totals();
+    var head = '<thead><tr><th scope="col">Shop</th><th scope="col">TikTok ROI</th><th scope="col">Real ROI</th><th scope="col">Break-even</th><th scope="col">Ad cost</th><th scope="col">Brought back</th><th scope="col">Made or lost</th><th scope="col">Checks</th><th scope="col"><span class="visually-hidden">Remove</span></th></tr></thead>';
+    var body = shops.map(function (x, i) {
+      var c = sums(x);
+      return '<tr><th scope="row">' + esc(x.name) + (x.mode === 'estimate' ? '<span class="shops__est">estimate</span>' : '') + '</th>' +
+        '<td>' + r2(c.tt) + '</td><td><b>' + r2(c.real) + '</b></td><td>' + (isFinite(c.be) ? r2(c.be) : 'none') + '</td>' +
+        '<td>' + esc(money(x.C, x.market)) + '</td><td>' + esc(money(Math.max(0, x.back), x.market)) + '</td>' +
+        '<td class="' + (c.net >= 0 ? 'made' : 'loss') + '">' + esc(signed(c.net, x.market)) + '</td>' +
+        '<td>' + x.passed + ' of ' + x.checks + '</td>' +
+        '<td><button type="button" class="shops__x" data-remove-shop="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></td></tr>';
+    }).join('');
+    var foot = T.map(function (t) {
+      var c = sums(t);
+      return '<tr><th scope="row">All ' + t.n + ' shop' + (t.n > 1 ? 's' : '') + (T.length > 1 ? ' in ' + MARKETS[t.market].cur : '') + '</th>' +
+        '<td>' + r2(c.tt) + '</td><td>' + r2(c.real) + '</td><td>' + (isFinite(c.be) ? r2(c.be) : 'none') + '</td>' +
+        '<td>' + esc(money(t.C, t.market)) + '</td><td>' + esc(money(Math.max(0, t.back), t.market)) + '</td>' +
+        '<td class="' + (c.net >= 0 ? 'made' : 'loss') + '">' + esc(signed(c.net, t.market)) + '</td><td></td><td></td></tr>';
+    }).join('');
+    $('shopsTable').innerHTML = head + '<tbody>' + body + '</tbody><tfoot>' + foot + '</tfoot>';
+  }
+  function totalLine() {
+    return totals().map(function (t) {
+      var c = sums(t);
+      return 'GMV Max check, ' + t.n + ' shop' + (t.n > 1 ? 's' : '') + (t.est ? ', some estimated' : '') + ': TikTok shows ROI ' + r2(c.tt) + '. After every cost the real ROI is ' + r2(c.real) + '. Break-even ROI: ' + (isFinite(c.be) ? r2(c.be) : 'none') + '. ' + (c.net >= 0 ? 'Made ' : 'Lost ') + money(Math.abs(c.net), t.market) + ' on ' + money(t.C, t.market) + ' of ads. Check yours: ' + SITE;
+    }).join('\n');
+  }
+  function addShop() {
+    var r = compute();
+    if (r.missing || state.example) return;
+    var M = MARKETS[state.market];
+    var base = M.countries ? COUNTRY_NAME[$('country').value] : M.name;
+    var same = shops.filter(function (x) { return x.base === base; }).length;
+    var counted = runChecks().filter(function (c) { return c[3] !== false; });
+    var name = same ? base + ' ' + (same + 1) : base;
+    shops.push({ name: name, base: base, market: state.market, mode: state.mode, C: r.C, G: r.G, T: r.T, kept: r.kept, back: r.back, passed: counted.filter(function (c) { return c[1] === 'ok'; }).length, checks: counted.length });
+    saveShops();
+    renderShops();
+    // Ready for the next shop: keep market, costs per item and sample cost; clear this shop's numbers.
+    ['cost', 'gross', 'costAff', 'gmv', 'orders', 'items', 'creators', 'payout', 'prodTotal', 'samples'].forEach(function (id) { $(id).value = ''; $(id).classList.remove('is-filled'); });
+    ['ads', 'analytics', 'payouts'].forEach(function (k) { $('paste-' + k).value = ''; $('status-' + k).textContent = ''; $('status-' + k).removeAttribute('data-state'); });
+    state.roi = null; state.dates = null; state.src = {};
+    $('boardMsg').textContent = name + ' is in your shops (' + shops.length + ' so far). Paste the next shop’s three pages' + (M.countries ? ' after switching the country in Seller Centre.' : '.');
+    render();
+    var b = document.querySelector('.board');
+    if (b && b.scrollIntoView) b.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }
+  function copyText(text, note, msg) {
+    var done = function () { if (note) note.textContent = msg; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    else { fallbackCopy(text); done(); }
   }
 
   /* ---------- memory, example, links ---------- */
@@ -460,6 +573,7 @@
   }
   function fillExample() {
     clearAll();
+    $('boardMsg').textContent = '';
     ['ads', 'analytics', 'payouts'].forEach(function (k) { $('paste-' + k).value = ''; });
     state.example = true;
     $('country').value = EXAMPLE.country;
@@ -531,12 +645,14 @@
     }
     if (t.closest('[data-copy]')) {
       var r = compute(); if (r.missing) return;
-      var text = resultLine(r), note = $('copyNote');
       var send = !!t.closest('[data-send]');
-      var done = function () { if (note) note.textContent = send ? 'Copied. Paste it in your message to Dilshad.' : 'Copied. Paste it anywhere.'; };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
-      else { fallbackCopy(text); done(); }
+      copyText(resultLine(r), $('copyNote'), send ? 'Copied. Paste it in your message to Dilshad.' : 'Copied. Paste it anywhere.');
     }
+    if (t.closest('[data-add-shop]')) { e.preventDefault(); addShop(); }
+    var rm = t.closest('[data-remove-shop]');
+    if (rm) { shops.splice(+rm.getAttribute('data-remove-shop'), 1); saveShops(); renderShops(); }
+    if (t.closest('[data-clear-shops]')) { shops = []; saveShops(); renderShops(); }
+    if (t.closest('[data-copy-total]')) copyText(totalLine(), $('shopsNote'), 'Copied the total. Paste it anywhere.');
   });
   function fallbackCopy(text) { var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.className = 'visually-hidden'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { /* ignore */ } document.body.removeChild(ta); }
   $('eaBench').addEventListener('change', render);
@@ -575,6 +691,9 @@
   } else {
     shown.ran = true;
   }
+  $('suggestDates').textContent = suggested().text;
+  loadShops();
+  renderShops();
   window.addEventListener('hashchange', fromHash);
   applyMarket('EU', true);
   applyMode('payouts');

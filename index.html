@@ -60,7 +60,7 @@
     <div class="wrap">
       <div class="run__head">
         <h2 id="run-title">Run it on your shop</h2>
-        <p>Pick dates that ended at least 30 days ago, so their orders are paid out, and use the same dates on all three pages.</p>
+        <p>Use the same dates on all three pages, ending at least 30 days ago so TikTok has paid those orders out. Today that’s <b id="suggestDates">16 Jul to 15 Oct</b>. For today’s orders, choose “Recent (estimate)”.</p>
       </div>
       <p class="phone-note">Seller Centre pages are easier to copy on a laptop. <a href="mailto:?subject=GMV%20Max%20check&amp;body=Run%20it%20on%20my%20laptop%3A%20https%3A%2F%2Fcheck.clyvant.ai">Send yourself the link</a></p>
 
@@ -70,6 +70,7 @@
           <span class="pill" id="checkPill" data-state="todo"><span class="pill__dot" aria-hidden="true"></span><span id="checkPillText">Waiting for your pages</span></span>
         </div>
         <p class="board__example" id="exampleNote" hidden>Showing our shop. <button type="button" class="textbtn" data-clear>Clear it to use yours</button></p>
+        <p class="board__msg" id="boardMsg" aria-live="polite"></p>
 
         <div class="board__cols">
           <div class="col" aria-labelledby="col1">
@@ -80,9 +81,19 @@
                 <select id="market"><option value="US">United States</option><option value="UK">United Kingdom</option><option value="EU" selected>Europe</option><option value="MY">Malaysia</option><option value="ID">Indonesia</option></select>
               </div>
               <div class="field" id="countryWrap"><label for="country">Country</label>
-                <select id="country"><option value="FR" selected>France</option><option value="DE">Germany</option><option value="IT">Italy</option><option value="ES">Spain</option><option value="IE">Ireland</option></select>
+                <select id="country"><option value="FR" selected>France</option><option value="DE">Germany</option><option value="IT">Italy</option><option value="ES">Spain</option><option value="IE">Ireland</option><option value="OT">Other EU country</option></select>
               </div>
             </div>
+            <div class="callout" id="euNote">
+              <p class="callout__title">Selling in several European countries?</p>
+              <p>Each country is its own shop, with its own ads, payouts and VAT. Do one at a time:</p>
+              <ol>
+                <li>Switch the country at the top of Seller Centre.</li>
+                <li>Copy that country’s Ads dashboard, Shop analytics and Finance pages. On Finance, pick the country, not “All markets”.</li>
+                <li>Press “Add to my shops”, then do the next country. The total adds them up.</li>
+              </ol>
+            </div>
+            <p class="field__hint" id="shopsHint" hidden>More than one shop? Run each one and press “Add to my shops” to see the total.</p>
 
             <div class="sheet">
               <label class="sheet__title" for="paste-ads">Seller Centre, Ads dashboard</label>
@@ -97,18 +108,18 @@
               <p class="sheet__status" id="status-analytics" aria-live="polite"></p>
             </div>
 
-            <div class="toggle" role="group" aria-label="What TikTok paid you">
-              <button type="button" data-mode="payouts" aria-pressed="true">From payouts</button>
-              <button type="button" data-mode="estimate" aria-pressed="false">No payouts page</button>
+            <div class="toggle" role="group" aria-label="Which orders">
+              <button type="button" data-mode="payouts" aria-pressed="true">Paid out (exact)</button>
+              <button type="button" data-mode="estimate" aria-pressed="false">Recent (estimate)</button>
             </div>
             <div class="sheet" id="mode-payouts">
               <label class="sheet__title" for="paste-payouts">Seller Centre, Finance</label>
-              <p class="sheet__hint">Finance, Overview. Same dates, copy the page with the Payout amount.</p>
+              <p class="sheet__hint">Finance, Overview. Same dates and the same country, not “All markets”. Copy the page with the Payout amount.</p>
               <textarea id="paste-payouts" rows="3" placeholder="Paste the Finance overview page" spellcheck="false"></textarea>
               <p class="sheet__status" id="status-payouts" aria-live="polite"></p>
             </div>
             <div class="est" id="mode-estimate" hidden>
-              <p class="sheet__hint">Without your payouts, the check estimates TikTok’s cut from fee presets. Less exact.</p>
+              <p class="sheet__hint">For orders TikTok hasn’t paid out yet, today included. There’s no payout to read, so the check estimates TikTok’s cut from fee presets. Treat it as an estimate.</p>
               <div class="row2">
                 <div class="field"><label for="fee">TikTok fee %</label><input id="fee" inputmode="decimal" value="9"></div>
                 <div class="field"><label for="commission">Creator commission %</label><input id="commission" inputmode="decimal" value="15"></div>
@@ -166,6 +177,16 @@
           </div>
         </div>
       </div>
+
+      <div class="shops" id="shops" hidden aria-labelledby="shops-title">
+        <div class="shops__head">
+          <h3 id="shops-title">Your shops</h3>
+          <div class="shops__actions"><button type="button" class="btn btn--dark btn--sm" data-copy-total>Copy the total</button><button type="button" class="textbtn" data-clear-shops>Clear the list</button></div>
+        </div>
+        <div class="shops__scroll"><table class="shops__table" id="shopsTable"></table></div>
+        <p class="small shops__how">Total real ROI = everything brought back ÷ all ad cost. It isn’t the average of each shop’s ROI.</p>
+        <p class="shops__note" id="shopsNote" aria-live="polite"></p>
+      </div>
     </div>
   </section>
 
@@ -196,6 +217,7 @@
         <li><b>Kept per €1 of sales</b> = kept ÷ shop sales</li>
         <li><b>Real ROI</b> = TikTok’s ROI × kept per €1 of sales</li>
         <li><b>Break-even ROI</b> = 1 ÷ kept per €1 of sales</li>
+        <li><b>Several shops</b> = everything brought back ÷ all ad cost, never the average of each shop’s ROI</li>
       </ol>
       <p class="small">TikTok’s payout already has its fees, creator commission, shipping, sample shipping and refunds taken out. The Finance page counts payouts by the day TikTok paid, not the day of the order. Over a few months of steady sales that evens out. If your sales grew fast, your real ROI is a little better than shown.</p>
     </div>

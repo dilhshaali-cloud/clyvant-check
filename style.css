@@ -220,7 +220,7 @@ h2 { letter-spacing: -0.03em; }
   .fees { display: block; overflow-x: auto; }
   .hero { padding-block: var(--space-xl); }
   .hero__actions { margin-top: var(--space-lg); }
-  .hero__actions .btn { flex: 1 1 auto; padding-inline: var(--space-md); }
+  .hero__actions .btn { flex: 1 1 auto; padding-inline: var(--space-sm); }
 }
 @media (prefers-reduced-motion: reduce) {
   .btn, .link, .textbtn, .paste, .field input, .field select, .toggle button { transition: none; }

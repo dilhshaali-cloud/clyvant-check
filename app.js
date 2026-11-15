@@ -320,7 +320,7 @@
       else res.push(['ck-payout', 'ok', 'TikTok paid out ' + pct(share) + ' of shop sales.']);
     } else res.push(['ck-payout', 'todo', 'Needs the Finance page']);
     // 4. Dates
-    if (state.example) res.push(['ck-dates', 'ok', 'Orders placed 15 May to 14 Oct 2026, every one paid out.']);
+    if (state.example) res.push(['ck-dates', 'ok', 'Orders placed 15 May to 14 Oct 2026, read order by order.']);
     else if (state.mode === 'estimate') res.push(['ck-dates', 'na', 'Not checked without the Finance page. Use dates that ended 30+ days ago.']);
     else if (state.dates) {
       var ago = Math.round((todayUTC() - state.dates.end) / DAY), len = Math.round((state.dates.end - state.dates.start) / DAY) + 1;
@@ -379,7 +379,7 @@
       segs.map(function (s) { return '<span class="bar__seg ' + s[0] + '" style="--w:' + (s[2] / total * 100).toFixed(2) + '%"></span>'; }).join('') + '</div>' +
       '<ul class="bar__legend">' + segs.map(function (s) { return '<li><span><i class="sw ' + s[0] + '" aria-hidden="true"></i>' + esc(s[1]) + '</span><span>' + esc(perUnit(s[2] / T)) + '</span></li>'; }).join('') + '</ul></div>';
     var facts = '<div><dt>Sales counted as GMV Max sales</dt><dd>' + pct(r.credit) + '</dd></div>';
-    if (r.creators !== null) facts += '<div><dt>Sales through creators’ videos</dt><dd>' + pct(r.creators) + '</dd></div>';
+    if (r.creators !== null) facts += '<div><dt>Sales through creators</dt><dd>' + pct(r.creators) + '</dd></div>';
     if (r.adsOnCreators !== null) facts += '<div><dt>Ad cost on creators’ videos</dt><dd>' + pct(r.adsOnCreators) + '</dd></div>';
     box.innerHTML =
       '<p class="result__cap">' + esc(cap) + '</p>' +

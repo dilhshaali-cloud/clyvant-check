@@ -255,7 +255,7 @@
       '<dl class="inst__row"><div><dt>Ads</dt><dd class="measure">' + esc(fmtMoney(r.C)) + '</dd></div><div><dt>Brought back</dt><dd class="measure">' + esc(fmtMoney(Math.max(0, r.back))) + '</dd></div><div><dt>' + (made ? 'Made' : 'Lost') + '</dt><dd class="measure">' + esc(fmtMoney(Math.abs(r.net))) + '</dd></div></dl>' +
       '<div class="verdict"><span class="verdict__word"><i class="sw ' + (r.verdict === 'Cut' ? 'sw--orange' : 'sw--blue') + '" aria-hidden="true"></i>' + r.verdict + '</span><p>' + esc(vword + vline) + '</p></div>' +
       '<dl class="facts">' + facts + '</dl>' +
-      '<div class="result__actions"><button type="button" class="btn" data-copy>Copy my result</button><a class="btn" href="https://www.linkedin.com/in/dilshad-ali-ceo/" rel="noopener" target="_blank">Send it to Dilshad</a></div>' +
+      '<div class="result__actions"><button type="button" class="btn" data-copy>Copy my result</button><a class="btn" data-copy data-send href="https://www.linkedin.com/in/dilshad-ali-ceo/" rel="noopener" target="_blank">Send it to Dilshad</a></div>' +
       '<p class="result__note" aria-live="polite" id="copyNote"></p>';
     $('jfResult').value = $('eaBench').checked ? benchLine(r) : '';
     save();
@@ -335,7 +335,8 @@
     if (t.closest('[data-copy]')) {
       var r = compute(); if (r.missing) return;
       var text = resultLine(r), note = $('copyNote');
-      var done = function () { if (note) note.textContent = 'Copied. Paste it anywhere.'; };
+      var send = !!t.closest('[data-send]');
+      var done = function () { if (note) note.textContent = send ? 'Copied. Paste it in your message to Dilshad.' : 'Copied. Paste it anywhere.'; };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
       else { fallbackCopy(text); done(); }
     }

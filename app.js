@@ -403,9 +403,11 @@
   }
   function countDown(r) {
     var el = $('bigROI');
-    if (!el || reduceMotion || !window.requestAnimationFrame) return;
+    if (!el || reduceMotion || !window.requestAnimationFrame || document.hidden) return;
     var from = r.tiktokROI, to = r.realROI, t0 = null, dur = 1300;
     el.textContent = r2(from);
+    // If frames are paused (a background tab), the real number still lands.
+    setTimeout(function () { if (document.body.contains(el)) el.textContent = r2(to); }, 700 + dur + 300);
     function step(t) {
       if (t0 === null) t0 = t;
       var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);

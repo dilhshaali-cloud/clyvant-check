@@ -36,7 +36,7 @@ h2 { letter-spacing: -0.03em; }
 .textbtn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* nav */
-.nav { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: color-mix(in oklab, var(--color-paper) 92%, transparent); border-bottom: var(--rule-hair) solid var(--color-rule-2); }
+.nav { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule-2); }
 .nav .container { display: flex; align-items: center; justify-content: space-between; min-height: var(--nav-h); gap: var(--space-lg); }
 .wordmark { font-weight: 500; font-size: var(--text-lg); letter-spacing: -0.02em; color: var(--color-ink); text-decoration: none; }
 .nav__right { display: flex; align-items: center; gap: var(--space-lg); }
@@ -184,7 +184,10 @@ h2 { letter-spacing: -0.03em; }
 .sources a { color: var(--color-ink-2); }
 
 .more { margin-top: var(--space-2xl); border-top: var(--rule-hair) solid var(--color-rule); }
-.more summary { display: flex; align-items: center; min-height: 56px; cursor: pointer; color: var(--color-ink); font-weight: 500; }
+.more summary { display: flex; align-items: center; gap: var(--space-md); min-height: 56px; cursor: pointer; color: var(--color-ink); font-weight: 500; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: "+"; margin-left: auto; font-family: var(--font-mono); font-weight: 400; font-size: var(--text-lg); color: var(--color-muted); }
+.more[open] summary::after { content: "\2212"; }
 .more summary:hover { text-decoration: underline; text-underline-offset: 0.2em; }
 .more .fees { margin-top: var(--space-md); }
 
@@ -215,6 +218,9 @@ h2 { letter-spacing: -0.03em; }
   .inst__row > div { padding-bottom: var(--space-sm); }
   .step { grid-template-columns: minmax(0, 1fr); gap: var(--space-xs); }
   .fees { display: block; overflow-x: auto; }
+  .hero { padding-block: var(--space-xl); }
+  .hero__actions { margin-top: var(--space-lg); }
+  .hero__actions .btn { flex: 1 1 auto; padding-inline: var(--space-md); }
 }
 @media (prefers-reduced-motion: reduce) {
   .btn, .link, .textbtn, .paste, .field input, .field select, .toggle button { transition: none; }
